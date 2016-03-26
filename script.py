@@ -6,7 +6,7 @@ from math import sqrt, pi
 import scipy.io
 import matplotlib.pyplot as plt
 import pickle
-import sys
+import sys, time
 
 def ldaLearn(X,y):
     # Inputs
@@ -64,7 +64,14 @@ def learnOLERegression(X,y):
     # y = N x 1                                                               
     # Output: 
     # w = d x 1                                                                
-    # IMPLEMENT THIS METHOD                                                   
+    
+    
+    # formula to calculate w using least square approach: w = ((Xt.X)^-1).Xt.y
+    Xt = np.transpose(X)
+    term1 = np.dot(Xt, X)
+    term1_inv = inv(term1)
+    term2 = np.dot(term1_inv, Xt)
+    w = np.dot(term2, y)
     return w
 
 def learnRidgeRegression(X,y,lambd):
@@ -82,13 +89,25 @@ def testOLERegression(w,Xtest,ytest):
     # Inputs:
     # w = d x 1
     # Xtest = N x d
-    # ytest = X x 1
+    # ytest = N x 1
     # Output:
     # rmse
     
-    # IMPLEMENT THIS METHOD
+    
+    #wt = np.transpose(w)
+    sqsum = 0
+    n = len(Xtest)
+    for i in xrange(n):
+        xi = Xtest[i]
+        yi = ytest[i]
+        #dot = np.dot(wt, xi)
+        dot = np.dot(xi,w)
+        diff = yi - dot
+        sqsum += diff**2
+        
+    rmse = sqrt(sqsum)/n
     return rmse
-
+    
 def regressionObjVal(w, X, y, lambd):
 
     # compute squared error (scalar) and gradient of squared error with respect
@@ -108,7 +127,7 @@ def mapNonLinear(x,p):
     return Xd
 
 # Main script
-
+"""
 # Problem 1
 # load the sample data                                                                 
 if sys.version_info.major == 2:
@@ -142,9 +161,11 @@ plt.show()
 zacc,zqdares = qdaTest(means,covmats,xx,np.zeros((xx.shape[0],1)))
 plt.contourf(x1,x2,zqdares.reshape((x1.shape[0],x2.shape[0])))
 plt.scatter(Xtest[:,0],Xtest[:,1],c=ytest)
+"""
 
 # Problem 2
 
+start = time.time()
 if sys.version_info.major == 2:
     X,y,Xtest,ytest = pickle.load(open('diabetes.pickle','rb'))
 else:
@@ -162,7 +183,10 @@ mle_i = testOLERegression(w_i,Xtest_i,ytest)
 
 print('RMSE without intercept '+str(mle))
 print('RMSE with intercept '+str(mle_i))
+end = time.time()
+print "Time for preprocess(): %.3fs" %(end-start)
 
+"""
 # Problem 3
 k = 101
 lambdas = np.linspace(0, 1, num=k)
@@ -204,3 +228,4 @@ for p in range(pmax):
     rmses5[p,1] = testOLERegression(w_d2,Xdtest,ytest)
 plt.plot(range(pmax),rmses5)
 plt.legend(('No Regularization','Regularization'))
+"""
