@@ -82,7 +82,15 @@ def learnRidgeRegression(X,y,lambd):
     # Output:                                                                  
     # w = d x 1                                                                
 
-    # IMPLEMENT THIS METHOD                                                   
+    # formula to calculate w using ridge regression (norm 2): w = ((Xt.X + lambda.I)^-1).Xt.y
+    d = len(X[0])
+    I = np.identity(d)
+    Xt = np.transpose(X)
+    prod1 = np.dot(Xt, X)
+    prod2 = np.dot(lambd, I)
+    inver = inv(np.add(prod1, prod2))
+    prod3 = np.dot(inver, Xt)
+    w = np.dot(prod3, y)
     return w
 
 def testOLERegression(w,Xtest,ytest):
@@ -165,6 +173,7 @@ plt.scatter(Xtest[:,0],Xtest[:,1],c=ytest)
 
 # Problem 2
 
+print "=======PROBLEM 2========"
 start = time.time()
 if sys.version_info.major == 2:
     X,y,Xtest,ytest = pickle.load(open('diabetes.pickle','rb'))
@@ -184,20 +193,42 @@ mle_i = testOLERegression(w_i,Xtest_i,ytest)
 print('RMSE without intercept '+str(mle))
 print('RMSE with intercept '+str(mle_i))
 end = time.time()
-print "Time for preprocess(): %.3fs" %(end-start)
+print "Time: %.3fs" %(end-start)
 
-"""
+
 # Problem 3
+print "=======PROBLEM 3========"
 k = 101
 lambdas = np.linspace(0, 1, num=k)
 i = 0
 rmses3 = np.zeros((k,1))
+min_rmse = sys.float_info.max
+opt_lambda = 0
+start = time.time()
 for lambd in lambdas:
     w_l = learnRidgeRegression(X_i,y,lambd)
     rmses3[i] = testOLERegression(w_l,Xtest_i,ytest)
-    i = i + 1
-plt.plot(lambdas,rmses3)
+    
+    if rmses3[i] < min_rmse:
+        min_rmse = rmses3[i]
+        opt_lambda = lambd
 
+    i = i + 1
+    
+print "Optimal lambda is: ", opt_lambda
+print "Min RMSE is: ", min_rmse
+end = time.time()
+print "Time: %.3fs" %(end-start)
+
+plt.figure()
+plt.title("Ridge regression (Lambda vs RMSE")
+plt.plot(lambdas,rmses3)
+plt.xlabel('Lambda')
+plt.ylabel('RMSE')
+plt.legend(('Test','Train'))
+plt.show()
+
+"""
 # Problem 4
 k = 101
 lambdas = np.linspace(0, 1, num=k)
