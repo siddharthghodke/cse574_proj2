@@ -18,7 +18,21 @@ def ldaLearn(X,y):
     # covmat - A single d x d learnt covariance matrix 
     
     # IMPLEMENT THIS METHOD
-    
+
+    classes = int(np.max(y))    
+    r,c = X.shape
+    means = np.empty((c, classes))
+
+    #print means
+
+    covmat = np.zeros(c)
+    for i in xrange (1, classes + 1):
+        subMat = X[y.flatten() == i,:]
+        covmat = covmat + (subMat.shape[0]-1) * np.cov(np.transpose(subMat))
+        means[:, i-1] = np.transpose(np.mean(subMat, axis=0))        
+
+    covmat = (1.0/(r - classes)) * covmat
+
     return means,covmat
 
 def qdaLearn(X,y):
@@ -32,6 +46,19 @@ def qdaLearn(X,y):
     
     # IMPLEMENT THIS METHOD
     
+    classes = int(np.max(y))
+    r,c = X.shape
+    means = np.empty((c, classes))
+
+    #print means
+
+    covmats = []
+
+    for i in xrange (1, classes+1):
+        subMat = X[y.flatten() == i,:]
+        covmats.append(np.cov(np.transpose(subMat)))
+        means[:, i-1] = np.transpose(np.mean(subMat, axis=0))
+        
     return means,covmats
 
 def ldaTest(means,covmat,Xtest,ytest):
@@ -44,7 +71,29 @@ def ldaTest(means,covmat,Xtest,ytest):
     # ypred - N x 1 column vector indicating the predicted labels
 
     # IMPLEMENT THIS METHOD
-    return acc,ypred
+
+    count = 0.0
+    inv = np.linalg.inv(covmat)
+    ytest = ytest.astype(int)
+    r,c = Xtest.shape
+    classes = means.shape[1]
+    
+    for i in xrange (1, c + 1):
+        pd,sno = 0,0
+        row = np.transpose(Xtest[i-1,:])
+
+        for j in xrange (1, classes + 1):
+            expow = row - means[:, j-1]
+            res = np.exp((-1/2)*np.dot(np.dot(np.transpose(row - means[:, j-1]),inv),expow))
+            if (res > pd):
+                sno,pd = j,res
+        
+        if (sno == ytest[i-1]):
+            count = count + 1
+
+    acc = count/c
+
+    return acc,ytest
 
 def qdaTest(means,covmats,Xtest,ytest):
     # Inputs
@@ -55,8 +104,39 @@ def qdaTest(means,covmats,Xtest,ytest):
     # acc - A scalar accuracy value
     # ypred - N x 1 column vector indicating the predicted labels
 
-    # IMPLEMENT THIS METHOD
-    return acc,ypred
+    count = 0.0    
+    r,c = Xtest.shape    
+    classes = means.shape[1];
+    normalizers = np.zeros(classes)
+    covmats_tmp = np.copy(covmats)
+
+    ytest = ytest.astype(int)
+        
+    #calculating the accuracy of QDA training
+    for i in range (1, classes+1):
+        d = np.shape(covmats_tmp[i-1])[0]
+        normalizers[i-1] = 1.0/(np.power(2*np.pi, d/2)*np.power(np.linalg.det(covmats_tmp[i-1]),1/2))
+
+        covmats_tmp[i-1] = np.linalg.inv(covmats_tmp[i-1])
+
+    
+    for i in range (1, r + 1):
+        pd,sno = 0,0
+
+        row = np.transpose(Xtest[i-1,:])
+        for k in range (1, classes+1):
+            invCov = covmats_tmp[k-1]
+            ex_pow = row - means[:, k-1]
+            result = normalizers[k-1]*np.exp((-1/2)*np.dot(np.dot(np.transpose(row - means[:, k-1]),invCov),ex_pow))
+            if (result > pd):
+                sno,pd = k,result
+
+        if (sno == ytest[i-1]):
+            count = count + 1
+
+    acc = count/r
+    return acc,ytest
+
 
 def learnOLERegression(X,y):
     # Inputs:                                                         
@@ -135,8 +215,10 @@ def mapNonLinear(x,p):
     return Xd
 
 # Main script
-"""
+
 # Problem 1
+print "=======PROBLEM 1 ========"
+
 # load the sample data                                                                 
 if sys.version_info.major == 2:
     X,y,Xtest,ytest = pickle.load(open('sample.pickle','rb'))
@@ -160,16 +242,17 @@ xx = np.zeros((x1.shape[0]*x2.shape[0],2))
 xx[:,0] = xx1.ravel()
 xx[:,1] = xx2.ravel()
 
+plt.title("Ridge regression (Lambda vs RMSE")
 zacc,zldares = ldaTest(means,covmat,xx,np.zeros((xx.shape[0],1)))
 plt.contourf(x1,x2,zldares.reshape((x1.shape[0],x2.shape[0])))
 plt.scatter(Xtest[:,0],Xtest[:,1],c=ytest)
-
 plt.show()
 
 zacc,zqdares = qdaTest(means,covmats,xx,np.zeros((xx.shape[0],1)))
 plt.contourf(x1,x2,zqdares.reshape((x1.shape[0],x2.shape[0])))
 plt.scatter(Xtest[:,0],Xtest[:,1],c=ytest)
-"""
+
+plt.show()
 
 # Problem 2
 
