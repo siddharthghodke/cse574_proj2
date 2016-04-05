@@ -203,7 +203,24 @@ def regressionObjVal(w, X, y, lambd):
     # lambda                                                                  
 
     # IMPLEMENT THIS METHOD                                             
-    return error, error_grad
+
+    N = X.shape[0]
+    w1=np.array([w]).T
+#    print(w.shape)
+#    print(X.shape)
+#    print(y.shape)
+#    print(lambd)
+    Xw = np.dot(X,w)
+#    print(Xw.shape)
+    yx = y - Xw
+#    print(yx.shape)
+    error = np.sum(np.square(yx))/N + lambd*np.dot(w.T,w)
+    error_grad = np.dot(y.T,X)/(-2*N) + np.dot(w,np.dot(X.T,X))/N + lambd*w.T
+#    print(error.shape)
+#    print(error_grad.shape)
+
+    return error.flatten(), error_grad.flatten()
+
 
 def mapNonLinear(x,p):
     # Inputs:                                                                  
@@ -212,6 +229,13 @@ def mapNonLinear(x,p):
     # Outputs:                                                                 
     # Xd - (N x (d+1))                                                         
     # IMPLEMENT THIS METHOD
+
+    N=x.shape[0]
+    Xd = np.ones((p+1,N))
+    for i in xrange(p+1):
+        Xd[i,:] = np.power(x,i)
+
+    Xd = np.transpose(Xd)
     return Xd
 
 # Main script
@@ -242,7 +266,7 @@ xx = np.zeros((x1.shape[0]*x2.shape[0],2))
 xx[:,0] = xx1.ravel()
 xx[:,1] = xx2.ravel()
 
-plt.title("Ridge regression (Lambda vs RMSE")
+plt.title("Ridge regression (Lambda vs RMSE)")
 zacc,zldares = ldaTest(means,covmat,xx,np.zeros((xx.shape[0],1)))
 plt.contourf(x1,x2,zldares.reshape((x1.shape[0],x2.shape[0])))
 plt.scatter(Xtest[:,0],Xtest[:,1],c=ytest)
@@ -304,15 +328,16 @@ end = time.time()
 print "Time: %.3fs" %(end-start)
 
 plt.figure()
-plt.title("Ridge regression (Lambda vs RMSE")
+plt.title("Ridge regression (Lambda vs RMSE)")
 plt.plot(lambdas,rmses3)
 plt.xlabel('Lambda')
 plt.ylabel('RMSE')
 plt.legend(('Test','Train'))
 plt.show()
 
-"""
+
 # Problem 4
+print "=======PROBLEM 4========"
 k = 101
 lambdas = np.linspace(0, 1, num=k)
 i = 0
@@ -326,10 +351,15 @@ for lambd in lambdas:
     w_l = np.reshape(w_l,[len(w_l),1])
     rmses4[i] = testOLERegression(w_l,Xtest_i,ytest)
     i = i + 1
+plt.title("Gradient Descent for Ridge regression (Lambda vs RMSE)")
 plt.plot(lambdas,rmses4)
-
+plt.xlabel('Lambda')
+plt.ylabel('RMSE')
+plt.legend(('Test','Train'))
+plt.show()
 
 # Problem 5
+print "=======PROBLEM 5========"
 pmax = 7
 lambda_opt = lambdas[np.argmin(rmses4)]
 rmses5 = np.zeros((pmax,2))
@@ -340,6 +370,10 @@ for p in range(pmax):
     rmses5[p,0] = testOLERegression(w_d1,Xdtest,ytest)
     w_d2 = learnRidgeRegression(Xd,y,lambda_opt)
     rmses5[p,1] = testOLERegression(w_d2,Xdtest,ytest)
+plt.title("Non-linear regression (Attributes vs RMSE)")
 plt.plot(range(pmax),rmses5)
+plt.xlabel('Attributes')
+plt.ylabel('RMSE')
+
 plt.legend(('No Regularization','Regularization'))
-"""
+plt.show()
