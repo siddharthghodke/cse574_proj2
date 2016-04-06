@@ -224,6 +224,7 @@ def regressionObjVal(w, X, y, lambd):
     # IMPLEMENT THIS METHOD                                             
 
     N = X.shape[0]
+  #  w = np.reshape(w, (w.size, 1))
     w1=np.array([w]).T
 #    print(w.shape)
 #    print(X.shape)
@@ -233,9 +234,10 @@ def regressionObjVal(w, X, y, lambd):
 #    print(Xw.shape)
     yx = y - Xw
 #    print(yx.shape)
-    error = np.sum(np.square(yx))/N + lambd*np.dot(w.T,w)
-    error_grad = np.dot(y.T,X)/(-2*N) + np.dot(w,np.dot(X.T,X))/N + lambd*w.T
-#    print(error.shape)
+    error = np.sum(np.square(yx))/(2*N) + lambd*np.dot(w.T,w)
+#    error=np.dot(np.transpose(yx),yx)/(2*N) + np.dot(lambd,np.dot(w.T,w))
+    error_grad = np.dot(y.T,X)/(-2*N) + np.dot(w,np.dot(X.T,X))/N + lambd*w
+#    print(error)
 #    print(error_grad.shape)
 
     return error.flatten(), error_grad.flatten()
@@ -392,41 +394,44 @@ k = 101
 lambdas = np.linspace(0, 1, num=k)
 i = 0
 rmses4 = np.zeros((k,1))
+rmses4_train =np.zeros((k,1))
 opts = {'maxiter' : 100}    # Preferred value.                                                
 w_init = np.ones((X_i.shape[1],1))
-#
 min_rmse = sys.float_info.max
 opt_lambda = 0
 start = time.time()
-#
 for lambd in lambdas:
     args = (X_i, y, lambd)
     w_l = minimize(regressionObjVal, w_init, jac=True, args=args,method='CG', options=opts)
-    w_l = np.transpose(np.array(w_l.x))
-    w_l = np.reshape(w_l,[len(w_l),1])
-    rmses4[i] = testOLERegression(w_l,Xtest_i,ytest)
-    rmses4_train = testOLERegression(w_l,X_i,y)
-    
-    #
+    w_l_1 = np.zeros((X_i.shape[1],1))
+    for j in range(len(w_l.x)):
+        w_l_1[j] = w_l.x[j]
+    rmses4[i] = testOLERegression(w_l_1,Xtest_i,ytest)
+    rmses4_train[i] = testOLERegression(w_l_1,X_i,y)
+
     if rmses4[i] < min_rmse:
         min_rmse = rmses4[i]
         opt_lambda = lambd
-        min_rmse_train = rmses4_train
-    #
-    
+
     i = i + 1
-#   
+
 print "Optimal lambda is: ", opt_lambda
 print "Min RMSE is: ", min_rmse
-print "Min RMSE (train) is: ", min_rmse_train
 end = time.time()
 print "Time: %.3fs" %(end-start)
-#
+
 plt.title("Gradient Descent for Ridge regression (Lambda vs RMSE)")
 plt.plot(lambdas,rmses4)
 plt.xlabel('Lambda')
 plt.ylabel('RMSE')
 plt.legend(('Test','Train'))
+plt.show()
+
+plt.title('Plot Train Data')
+plt.plot(lambdas,rmses4_train)
+plt.xlabel('Lambda')
+plt.ylabel('RMSE')
+plt.legend(('Train','Test'))
 plt.show()
 
 # Problem 5
