@@ -193,7 +193,7 @@ def testOLERegression(w,Xtest,ytest):
         diff = yi - dot
         sqsum += diff**2
         
-    rmse = sqrt(sqsum)/n
+    rmse = sqrt(sqsum/n)
     return rmse
     
 def regressionObjVal(w, X, y, lambd):
@@ -252,11 +252,11 @@ else:
 # LDA
 means,covmat = ldaLearn(X,y)
 ldaacc = ldaTest(means,covmat,Xtest,ytest)
-print('LDA Accuracy = '+str(ldaacc))
+print('LDA Accuracy = '+str(ldaacc[0]))
 # QDA
 means,covmats = qdaLearn(X,y)
 qdaacc = qdaTest(means,covmats,Xtest,ytest)
-print('QDA Accuracy = '+str(qdaacc))
+print('QDA Accuracy = '+str(qdaacc[0]))
 
 # plotting boundaries
 x1 = np.linspace(-5,20,100)
@@ -292,13 +292,18 @@ X_i = np.concatenate((np.ones((X.shape[0],1)), X), axis=1)
 Xtest_i = np.concatenate((np.ones((Xtest.shape[0],1)), Xtest), axis=1)
 
 w = learnOLERegression(X,y)
-mle = testOLERegression(w,Xtest,ytest)
+rmse_test = testOLERegression(w,Xtest,ytest)
+rmse_train = testOLERegression(w, X, y)
 
 w_i = learnOLERegression(X_i,y)
-mle_i = testOLERegression(w_i,Xtest_i,ytest)
+rmse_i_test = testOLERegression(w_i,Xtest_i,ytest)
+rmse_i_train = testOLERegression(w_i, X_i, y)
 
-print('RMSE without intercept '+str(mle))
-print('RMSE with intercept '+str(mle_i))
+print('RMSE without intercept (Test) '+str(rmse_test))
+print('RMSE with intercept (Test) '+str(rmse_i_test))
+print('RMSE without intercept (Train) '+str(rmse_train))
+print('RMSE with intercept (Train) '+str(rmse_i_train))
+
 end = time.time()
 print "Time: %.3fs" %(end-start)
 
@@ -308,32 +313,54 @@ print "=======PROBLEM 3========"
 k = 101
 lambdas = np.linspace(0, 1, num=k)
 i = 0
-rmses3 = np.zeros((k,1))
+rmses3_test = np.zeros((k, 1))
+rmses3_train = np.zeros((k, 1))
 min_rmse = sys.float_info.max
 opt_lambda = 0
 start = time.time()
 for lambd in lambdas:
     w_l = learnRidgeRegression(X_i,y,lambd)
-    rmses3[i] = testOLERegression(w_l,Xtest_i,ytest)
+    rmses3_test[i] = testOLERegression(w_l,Xtest_i,ytest)
+    rmses3_train[i] = testOLERegression(w_l, X_i, y)
     
-    if rmses3[i] < min_rmse:
-        min_rmse = rmses3[i]
+    if rmses3_test[i] < min_rmse:
+        min_rmse = rmses3_test[i]
         opt_lambda = lambd
+        min_rmse_train = rmses3_train[i]
 
     i = i + 1
     
 print "Optimal lambda is: ", opt_lambda
 print "Min RMSE is: ", min_rmse
+print "Min RMSE (train) is ", min_rmse_train
 end = time.time()
 print "Time: %.3fs" %(end-start)
 
 plt.figure()
 plt.title("Ridge regression (Lambda vs RMSE)")
-plt.plot(lambdas,rmses3)
+plt.plot(lambdas,rmses3_test)
+plt.plot(lambdas,rmses3_train)
 plt.xlabel('Lambda')
 plt.ylabel('RMSE')
 plt.legend(('Test','Train'))
 plt.show()
+
+
+print "===========OLE vs Ridge============="
+w_rr = learnRidgeRegression(X_i, y, opt_lambda)
+print "Sum of weight elements (OLE): ", np.sum(w_i)
+print "Sum of weight elements (Ridge): ", np.sum(w_rr)
+print "Variance (OLE): ", np.var(w_i)
+print "Variance (Ridge)", np.var(w_rr)
+
+plt.figure()
+plt.title("OLE vs Ridge weights")
+plt.plot(range(0, w_i.shape[0]), w_i)
+plt.plot(range(0, w_rr.shape[0]), w_rr)
+plt.xlabel('Weights')
+plt.legend(('OLE','Ridge'))
+plt.show()
+
 
 
 # Problem 4
@@ -344,13 +371,34 @@ i = 0
 rmses4 = np.zeros((k,1))
 opts = {'maxiter' : 100}    # Preferred value.                                                
 w_init = np.ones((X_i.shape[1],1))
+#
+min_rmse = sys.float_info.max
+opt_lambda = 0
+start = time.time()
+#
 for lambd in lambdas:
     args = (X_i, y, lambd)
     w_l = minimize(regressionObjVal, w_init, jac=True, args=args,method='CG', options=opts)
     w_l = np.transpose(np.array(w_l.x))
     w_l = np.reshape(w_l,[len(w_l),1])
     rmses4[i] = testOLERegression(w_l,Xtest_i,ytest)
+    rmses4_train = testOLERegression(w_l,X_i,y)
+    
+    #
+    if rmses4[i] < min_rmse:
+        min_rmse = rmses4[i]
+        opt_lambda = lambd
+        min_rmse_train = rmses4_train
+    #
+    
     i = i + 1
+#   
+print "Optimal lambda is: ", opt_lambda
+print "Min RMSE is: ", min_rmse
+print "Min RMSE (train) is: ", min_rmse_train
+end = time.time()
+print "Time: %.3fs" %(end-start)
+#
 plt.title("Gradient Descent for Ridge regression (Lambda vs RMSE)")
 plt.plot(lambdas,rmses4)
 plt.xlabel('Lambda')
@@ -363,13 +411,35 @@ print "=======PROBLEM 5========"
 pmax = 7
 lambda_opt = lambdas[np.argmin(rmses4)]
 rmses5 = np.zeros((pmax,2))
+min_rmse = sys.float_info.max
+min_rmse_reg = sys.float_info.max
+start = time.time()
 for p in range(pmax):
     Xd = mapNonLinear(X[:,2],p)
     Xdtest = mapNonLinear(Xtest[:,2],p)
     w_d1 = learnRidgeRegression(Xd,y,0)
     rmses5[p,0] = testOLERegression(w_d1,Xdtest,ytest)
+    rmse5_train = testOLERegression(w_d1, Xd, y)
     w_d2 = learnRidgeRegression(Xd,y,lambda_opt)
     rmses5[p,1] = testOLERegression(w_d2,Xdtest,ytest)
+    rmse5_train_reg = testOLERegression(w_d2, Xd, y)
+    
+    if rmses5[p,0] < min_rmse:
+        min_rmse = rmses5[p,0]
+        min_rmse5_train = rmse5_train
+        #min_p = p
+      
+    if rmses5[p,1] < min_rmse_reg:
+        min_rmse_reg = rmses5[p,1]
+        min_rmse5_train_reg = rmse5_train_reg
+        #min_p_reg = p 
+
+print "Min RMSE is: ", min_rmse
+print "Min RMSE (reg) is: ", min_rmse_reg
+print "Min RMSE train (no reg) is: ", min_rmse5_train
+print "Min RMSE train (reg) is: ", min_rmse5_train_reg
+end = time.time()
+print "Time: %.3fs" %(end-start)
 plt.title("Non-linear regression (Attributes vs RMSE)")
 plt.plot(range(pmax),rmses5)
 plt.xlabel('Attributes')
